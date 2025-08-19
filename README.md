@@ -3,6 +3,7 @@
 ## Overview
 - Typically database objects are exported manually: a folder per object(s) as separate files,and as a single file for ease of rebuild
 - Update the ```datatype_handler.sql``` and ```backup_schema.bat``` to the same directory where you want the db backup to occur
+- Recommended for data managers with an understanding the difference for db exports between separate vs single files, and DDL vs DATA, different ways to export - ldr, insert, csv, etc.
 
 ## Prerequisites
 - Windows 10 or higher (tested with batch .bat scripts).
