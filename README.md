@@ -2,7 +2,7 @@
 
 ## Overview
 - Typically database objects are exported manually: a folder per object(s) as separate files,and as a single file for ease of rebuild
-- Update the datatype_handler.sql and backup_schema.bat to the same directory where you want the db backup to occur
+- Update the ```datatype_handler.sql``` and ```backup_schema.bat``` to the same directory where you want the db backup to occur
 
 ## Prerequisites
 - Windows 10 or higher (tested with batch .bat scripts).
