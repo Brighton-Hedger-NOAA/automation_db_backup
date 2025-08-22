@@ -51,21 +51,12 @@ EXIT
     return $result | Where-Object { $_ -and $_ -notlike '*SQL>*' -and $_ -notlike '*EXIT*' -and $_ -notlike '*exit*' -and $_ -notmatch '^\s*$' }
 }
 # function to run side scripts for main db objects (seq, tab, trig, data, view, cons)
-function Export-DbObject {
-    param($HelperScript, $ObjectName, $OutputFile)
+# Function to call the export manager script
+function Export-Object {
+    param($Mode, $Arguments, $OutputFile)
     $sqlScript = @"
 $sqlConnect
-@$HelperScript '$ObjectName'
-exit;
-"@
-    $sqlScript | & $sqlplusPath -S /nolog | Set-Content -Path $OutputFile
-}
-# function to run side script for all other db objects (functions, packages, etc)
-function Export-GenericObject {
-    param($ObjectType, $ObjectName, $OutputFile)
-    $sqlScript = @"
-$sqlConnect
-@export_other.sql '$ObjectType' '$ObjectName'
+@export_objects.sql '$Mode' $Arguments
 exit;
 "@
     $sqlScript | & $sqlplusPath -S /nolog | Set-Content -Path $OutputFile
@@ -82,7 +73,7 @@ $sequences = Get-SqlResult "select sequence_name from user_sequences;"
 foreach ($sequence in $sequences) {
     if ($sequence.Trim()) {
         Write-Host " - Exporting sequence $sequence"
-        Export-DbObject "export_sequence.sql" $sequence (Join-Path $dirSeq "$sequence.sql")
+        Export-Object "SEQUENCE" "'$sequence'" (Join-Path $dirSeq "$sequence.sql")
     }
 }
 
@@ -92,7 +83,7 @@ $tables = Get-SqlResult "select table_name from user_tables;"
 foreach ($table in $tables) {
     if ($table.Trim()) {
         Write-Host " - Exporting table $table"
-        Export-DbObject "export_table.sql" $table (Join-Path $dirTab "$table.sql")
+        Export-Object "TABLE" "'$table'" (Join-Path $dirTab "$table.sql")
     }
 }
 
@@ -102,7 +93,7 @@ $triggers = Get-SqlResult "select trigger_name from user_triggers;"
 foreach ($trigger in $triggers) {
     if ($trigger.Trim()) {
         Write-Host " - Exporting trigger $trigger"
-        Export-DbObject "export_trigger.sql" $trigger (Join-Path $dirTrg "$trigger.sql")
+        Export-Object "TRIGGER" "'$trigger'" (Join-Path $dirTrg "$trigger.sql")
     }
 }
 
@@ -112,7 +103,7 @@ $dataTables = Get-SqlResult "select table_name from user_tables where table_name
 foreach ($table in $dataTables) {
     Write-Host " - Exporting data for $table"
     $outputFile = Join-Path $dirData "$($table)_DATA_TABLE.sql"
-    Export-DbObject "export_data.sql" $table $outputFile
+    Export-Object "DATA" "'$table'" (Join-Path $dirData "$($table)_data.sql")
 }
 
 # export OCC_STR_DATA tables as .csv's
@@ -147,8 +138,7 @@ $tablesWithConstraints = Get-SqlResult "SELECT DISTINCT uc.table_name FROM user_
 
 foreach ($table in $tablesWithConstraints) {
     Write-Host " - Exporting constraints for table $table"
-    # Call the new helper script for each table
-    Export-DbObject "export_constraint.sql" $table (Join-Path $dirCons "$table`_CONSTRAINT.sql")
+    Export-Object "TABLE_CONSTRAINTS" "'$table'" (Join-Path $dirCons "$($table)_constraints.sql")
 }
 
 # export views
@@ -157,10 +147,23 @@ $views = Get-SqlResult "select view_name from user_views;"
 foreach ($view in $views) {
     if ($view.Trim()) {
         Write-Host " - Exporting view $view"
-        Export-DbObject "export_view.sql" $view (Join-Path $dirViews "$view.sql")
+        Export-Object "VIEW" "'$view'" (Join-Path $dirViews "$view.sql")
     }
 }
 
+# export remaining objects
+Write-Host "Exporting 'Other' objects..." -ForegroundColor Green
+$otherObjectTypes = @("TYPE", "SYNONYM", "DATABASE LINK", "PACKAGE", "PACKAGE BODY", "PROCEDURE", "FUNCTION", "OPERATOR", "MATERIALIZED VIEW", "MATERIALIZED VIEW LOG")
+foreach ($objectType in $otherObjectTypes) {
+    $objects = Get-SqlResult "select object_name from user_objects where object_type = '$objectType' and object_name not like 'BIN$%';"
+    if ($objects) {
+        Write-Host " - Exporting objects of type: $objectType"
+        foreach ($objectName in $objects) {
+            Write-Host "   - $objectName"
+            Export-Object "GENERIC" "'$objectType' '$objectName'" (Join-Path $dirOther "$objectName.sql")
+        }
+    }
+}
 
 
 # ================================
