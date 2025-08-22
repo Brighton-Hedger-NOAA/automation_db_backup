@@ -18,7 +18,7 @@
      - ex:  <code> cd C:\Users\Brighton.Hedger\Desktop\backup_test </code>
 - run the following line:
      - <code> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process </code>
--run the script:
+- run the script:
      - <code> ./backup_schema.ps1 </code>
 
 
