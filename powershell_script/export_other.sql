@@ -1,9 +1,0 @@
-SET VERIFY OFF
-SET LONG 2000000
-SET PAGESIZE 0
-SET FEEDBACK OFF
-SET HEADING OFF
-SET TRIMSPOOL ON
-SET LINESIZE 32767
--- This script takes two arguments: the object type (&1) and the object name (&2)
-SELECT DBMS_METADATA.GET_DDL('&1', '&2') FROM DUAL;
