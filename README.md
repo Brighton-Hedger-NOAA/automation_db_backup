@@ -11,8 +11,8 @@
 - Alternatively, Linux/Unix (requires rewriting .bat to .sh and adjusting paths).
 
 **Instructions**
-1. Download both <code>backup_schema.ps1</code> and <code>export_objects.sql </code> in the same directory (does not have to be where you want the backup to go)
-2. Update the user/schema, password, databse connection, and output directory (can also include list of tables to exclude if desired)
+1. Download both <code>backup_schema.ps1</code> and <code>export_objects.sql </code> in the same directory (*does not have to be where you want the backup to go*)
+2. Update the user/schema, password, databse connection, and output directory (*can also include list of tables to exclude if desired*)
 3. Open windows PowerShell
 4. Change the directory to where you placed <code>backup_schema.ps1</code> and <code>export_objects.sql</code>
      - ex:  <code> cd C:\Users\Brighton.Hedger\Desktop\backup_test </code>
