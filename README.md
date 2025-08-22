@@ -2,13 +2,25 @@
 
 ## Overview
 - Typically database objects are exported manually: a folder per object(s) as separate files,and as a single file for ease of rebuild
-- Update the ```datatype_handler.sql``` and ```backup_schema.bat``` to the same directory where you want the db backup to occur
+- Update the ```backup_schema.ps1``` directory to where you want the db backup to occur
 - Recommended for data managers with an understanding the difference for db exports between separate vs single files, and DDL vs DATA, different ways to export - ldr, insert, csv, etc.
 
 ## Prerequisites
 - Windows 10 or higher (tested with batch .bat scripts).
 - Any Windows Server version that supports SQL*Plus (e.g., 2016, 2019).
 - Alternatively, Linux/Unix (requires rewriting .bat to .sh and adjusting paths).
+
+**Instructions**
+- Download both backup_schema.ps1 and export_objects.sql in the same directory (does not have to be where you want the backup to go)
+- Update the user/schema, password, databse connection, and output directory (can also include list of tables to exclude if desired)
+- Open windows PowerShell
+- Change the directory to where you placed backup_schema.ps1 and export_objects.sql
+     - ex:  <code> cd C:\Users\Brighton.Hedger\Desktop\backup_test </code>
+- run the following line:
+     - <code> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process </code>
+-run the script:
+     - <code> ./backup_schema.ps1 </code>
+
 
 **Oracle Backup/Restore Script – System Requirements**
 
