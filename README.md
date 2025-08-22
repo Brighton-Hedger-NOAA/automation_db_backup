@@ -11,14 +11,16 @@
 - Alternatively, Linux/Unix (requires rewriting .bat to .sh and adjusting paths).
 
 **Instructions**
-1. Download both <code>backup_schema.ps1</code> and <code>export_objects.sql </code> in the same directory (*does not have to be where you want the backup to go*)
-2. Update the user/schema, password, databse connection, and output directory (*can also include list of tables to exclude if desired*)
-3. Open windows PowerShell
-4. Change the directory to where you placed <code>backup_schema.ps1</code> and <code>export_objects.sql</code>
+1. Download <code>backup_schema.ps1</code> and all supporting .sql scripts: <code>export_sequence.sql </code> <code>export_table.sql </code> <code>export_trigger.sql </code> <code>export_data.sql </code> <code>export_constraint.sql </code> <code>export_view.sql </code> <code>export_other.sql </code> in the same directory  
+   (*does not have to be where you want the backup to go*)
+3. Update the user/schema, password, databse connection, and output directory  
+   (*can also include list of tables to exclude if desired*)
+5. Open windows PowerShell
+6. Change the directory to where you placed <code>backup_schema.ps1</code> and supporting scripts
      - ex:  <code> cd C:\Users\Brighton.Hedger\Desktop\backup_test </code>
-5. Run the following line:
+7. Run the following line:
      - <code> Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process </code>
-6. Run the script:
+8. Run the script:
      - <code> ./backup_schema.ps1 </code>
 
 
