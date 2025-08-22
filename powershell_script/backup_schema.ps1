@@ -230,6 +230,6 @@ $rebuildScriptContent = @"
 Set-Content -Path (Join-Path $baseDir "README_for_Master_Rebuild.txt") -Value $rebuildScriptContent
 
 Write-Host ""
-Write-Host "Backup complete!" -ForegroundColor Magenta
+Write-Host "Backup complete! Files saved to $baseDir" -ForegroundColor Magenta
 Write-Host ""
 # ================================
