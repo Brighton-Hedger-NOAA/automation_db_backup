@@ -14,7 +14,8 @@
 1. Download <code>backup_schema.ps1</code> and all supporting .sql scripts: <code>export_sequence.sql </code> <code>export_table.sql </code> <code>export_trigger.sql </code> <code>export_data.sql </code> <code>export_constraint.sql </code> <code>export_view.sql </code> <code>export_other.sql </code> in the same directory  
    (*does not have to be where you want the backup to go*)
 3. Update the user/schema, password, databse connection, and output directory  
-   (*can also include list of tables to exclude if desired*)
+   (*can also include list of tables to exclude if desired
+     comment out the OCC_STR_DATA loader section for a quicker backup*)
 5. Open windows PowerShell
 6. Change the directory to where you placed <code>backup_schema.ps1</code> and supporting scripts
      - ex:  <code> cd C:\Users\Brighton.Hedger\Desktop\backup_test </code>
