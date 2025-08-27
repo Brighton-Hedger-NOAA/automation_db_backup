@@ -226,18 +226,18 @@ $rebuildScriptContent = @"
 # =====================================================================
 # To restore the schema from this backup run the following files in order.
 # =====================================================================
+
 -- 1. Create schema objects
 @01_seq\01_all_seq.sql
 @02_tables\02_all_tables.sql
+@03_trigs\03_all_trigs.sql
+@05_cons\05_all_cons.sql
 @06_views\06_all_views.sql
+@07_other\07_all_other.sql
 
 -- 2. Load data
 @04_data\04_all_data.sql
-
--- 3. Apply constraints and create other objects
-@05_cons\05_all_cons.sql
-@03_trigs\03_all_trigs.sql
-@07_other\07_all_other.sql
+"@
 "@
 Set-Content -Path (Join-Path $baseDir "README_for_Master_Rebuild.txt") -Value $rebuildScriptContent
 Write-Host ""
