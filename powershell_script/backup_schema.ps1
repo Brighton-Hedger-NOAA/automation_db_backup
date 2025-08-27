@@ -238,13 +238,7 @@ $rebuildScriptContent = @"
 -- 2. Load data
 @04_data\04_all_data.sql
 "@
-"@
 Set-Content -Path (Join-Path $baseDir "README_for_Master_Rebuild.txt") -Value $rebuildScriptContent
-Write-Host ""
-Write-Host "Backup complete! Files saved to $baseDir" -ForegroundColor Magenta
-Write-Host ""
-# ================================
-
 Write-Host ""
 Write-Host "Backup complete! Files saved to $baseDir" -ForegroundColor Magenta
 Write-Host ""
