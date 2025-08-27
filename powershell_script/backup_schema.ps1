@@ -189,6 +189,7 @@ foreach ($objectType in $otherObjectTypes) {
 }
 
 
+
 # ================================
 # Combine Files for Each Category
 # ================================
@@ -216,6 +217,7 @@ foreach ($item in $dirsToCombine.GetEnumerator()) {
     }
 }
 
+
 # ================================
 # Generate Master Instruction File
 # ================================
@@ -239,6 +241,7 @@ $rebuildScriptContent = @"
 @04_data\04_all_data.sql
 "@
 Set-Content -Path (Join-Path $baseDir "README_for_Master_Rebuild.txt") -Value $rebuildScriptContent
+
 Write-Host ""
 Write-Host "Backup complete! Files saved to $baseDir" -ForegroundColor Magenta
 Write-Host ""
