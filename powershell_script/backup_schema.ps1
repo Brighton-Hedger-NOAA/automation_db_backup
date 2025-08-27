@@ -16,7 +16,7 @@ $excludeList = "'TABLE_TO_SKIP1','TABLE_TO_SKIP2'"
 
 # output Directories
 $baseDir = $outputDirectory
-$dirSeq = Join-Path $baseDir "01_sequences"
+$dirSeq = Join-Path $baseDir "01_seq"
 $dirTab = Join-Path $baseDir "02_tables"
 $dirTrg = Join-Path $baseDir "03_trigs"
 $dirData = Join-Path $baseDir "04_data"
@@ -115,31 +115,31 @@ foreach ($table in $dataTables) {
     Export-DbObject "export_data.sql" $table $outputFile
 }
 
- # export OCC_STR_DATA tables as .csv's
- Write-Host "Exporting large string data tables..." -ForegroundColor Cyan
- $strTables = Get-SqlResult "select table_name from user_tables where table_name like 'OCC_STR_DATA%';"
- foreach ($table in $strTables) {
-     if ($table.Trim()) {
-         Write-Host " - Generating SQL*Loader files for $table"
-         $ctlContent = @"
- LOAD DATA
- INFILE *
- INTO TABLE $table
- FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
- (all columns need to be listed manually)
- "@
-         Set-Content -Path (Join-Path $dirStr "$table.ctl") -Value $ctlContent
-         $csvScript = @"
- $sqlConnect
- set colsep ',' head off pagesize 0 feedback off trimspool on linesize 32767;
- spool "$(Join-Path $dirStr "$table.csv")"
- select * from $table;
- spool off;
- exit;
- "@
-         $csvScript | & $sqlplusPath -S /nolog | Out-Null
-     }
- }
+# export OCC_STR_DATA tables as .csv's
+Write-Host "Exporting large string data tables..." -ForegroundColor Cyan
+$strTables = Get-SqlResult "select table_name from user_tables where table_name like 'OCC_STR_DATA%';"
+foreach ($table in $strTables) {
+    if ($table.Trim()) {
+        Write-Host " - Generating SQL*Loader files for $table"
+        $ctlContent = @"
+LOAD DATA
+INFILE *
+INTO TABLE $table
+FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
+(all columns need to be listed manually)
+"@
+        Set-Content -Path (Join-Path $dirStr "$table.ctl") -Value $ctlContent
+        $csvScript = @"
+$sqlConnect
+set colsep ',' head off pagesize 0 feedback off trimspool on linesize 32767;
+spool "$(Join-Path $dirStr "$table.csv")"
+select * from $table;
+spool off;
+exit;
+"@
+        $csvScript | & $sqlplusPath -S /nolog | Out-Null
+    }
+}
 
 # export cons
 Write-Host "Exporting constraints..." -ForegroundColor Cyan
@@ -161,23 +161,40 @@ foreach ($view in $views) {
     }
 }
 
-# export views
-Write-Host "Exporting views..." -ForegroundColor Cyan
-$views = Get-SqlResult "select view_name from user_views;"
-foreach ($view in $views) {
-    if ($view.Trim()) {
-        Write-Host " - Exporting view $view"
-        Export-DbObject "export_view.sql" $view (Join-Path $dirViews "$view.sql")
+# export remaining objects
+Write-Host "Exporting remaining database objects..." -ForegroundColor Cyan
+$otherObjectTypes = @(
+    "TYPE",
+    "SYNONYM",
+    "DATABASE LINK",
+    "PACKAGE",
+    "PACKAGE BODY",
+    "PROCEDURE",
+    "FUNCTION",
+    "OPERATOR",
+    "MATERIALIZED VIEW",
+    "MATERIALIZED VIEW LOG"
+)
+foreach ($objectType in $otherObjectTypes) {
+    $objects = Get-SqlResult "select object_name from user_objects where object_type = '$objectType' and object_name not like 'BIN$%';"
+    if ($objects) {
+        Write-Host " - Exporting $objectType s:"
+        foreach ($objectName in $objects) {
+            Write-Host "   - $objectName"
+            $outputFile = Join-Path $dirOther "$objectName.sql"
+            # Use the new function to pass both the type and the name
+            Export-GenericObject $objectType $objectName $outputFile
+        }
     }
 }
+
 
 # ================================
 # Combine Files for Each Category
 # ================================
 Write-Host "Combining individual files..." -ForegroundColor Cyan
-
 $dirsToCombine = @{
-    "01_sequences" = $dirSeq;
+    "01_seq" = $dirSeq;
     "02_tables"    = $dirTab;
     "03_trigs"     = $dirTrg;
     "04_data"      = $dirData;
@@ -186,27 +203,18 @@ $dirsToCombine = @{
     "07_other"     = $dirOther
 }
 foreach ($item in $dirsToCombine.GetEnumerator()) {
-    $dirPath = $item.Value
-    
+    $dirPath = $item.Value 
     $combinedFileName = "$($item.Name.Substring(0, 2))_all_$($item.Name.Substring(3)).sql"
     $combinedFilePath = Join-Path $dirPath $combinedFileName
-    
     $individualFilePaths = Get-ChildItem -Path $dirPath -Filter "*.sql" | Where-Object { $_.Name -notlike "all_*.sql" } | Select-Object -ExpandProperty FullName
-
     if ($individualFilePaths) {
         Write-Host " - Creating $combinedFilePath"
-        
-        # CORRECTED: Read all content into a variable first to avoid file locking
         $combinedContent = Get-Content -Path $individualFilePaths
-        
-        # Now, write the content from the variable to the new file
         Set-Content -Path $combinedFilePath -Value $combinedContent
-        
         Write-Host "   - Copying to combined folder..."
         Copy-Item -Path $combinedFilePath -Destination $dirCombined
     }
 }
-
 
 # ================================
 # Generate Master Instruction File
@@ -218,9 +226,8 @@ $rebuildScriptContent = @"
 # =====================================================================
 # To restore the schema from this backup run the following files in order.
 # =====================================================================
-
 -- 1. Create schema objects
-@01_sequences\01_all_sequences.sql
+@01_seq\01_all_seq.sql
 @02_tables\02_all_tables.sql
 @06_views\06_all_views.sql
 
@@ -233,6 +240,10 @@ $rebuildScriptContent = @"
 @07_other\07_all_other.sql
 "@
 Set-Content -Path (Join-Path $baseDir "README_for_Master_Rebuild.txt") -Value $rebuildScriptContent
+Write-Host ""
+Write-Host "Backup complete! Files saved to $baseDir" -ForegroundColor Magenta
+Write-Host ""
+# ================================
 
 Write-Host ""
 Write-Host "Backup complete! Files saved to $baseDir" -ForegroundColor Magenta
