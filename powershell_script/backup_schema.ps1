@@ -41,15 +41,17 @@ foreach ($dir in $dirsToCreate) {
 # function to run SQL queries and return the result
 function Get-SqlResult {
     param($Query)
+    $connectionString = "$oracleUser/$oraclePass@$oracleDb"
     $sqlScript = @"
-$sqlConnect
-SET HEADING OFF FEEDBACK OFF PAGESIZE 0 LINESIZE 32767
+SET HEADING OFF FEEDBACK OFF PAGESIZE 0 TERMOUT OFF TRIMOUT ON TRIMSPOOL ON
 $Query
-EXIT
+/
+EXIT;
 "@
-    $result = ($sqlScript | & $sqlplusPath -S /nolog)
-    return $result | Where-Object { $_ -and $_ -notlike '*SQL>*' -and $_ -notlike '*EXIT*' -and $_ -notlike '*exit*' -and $_ -notmatch '^\s*$' }
+    $result = $sqlScript | & $sqlplusPath -S -L $connectionString
+    return $result | Where-Object { $_.Trim() -ne '' }
 }
+
 # function to run side scripts for main db objects (seq, tab, trig, data, view, cons)
 function Export-DbObject {
     param($HelperScript, $ObjectName, $OutputFile)
@@ -115,29 +117,53 @@ foreach ($table in $dataTables) {
     Export-DbObject "export_data.sql" $table $outputFile
 }
 
-# export OCC_STR_DATA tables as .csv's
+# export OCC_STR_DATA tables as .ldr's
 Write-Host "Exporting large string data tables..." -ForegroundColor Cyan
 $strTables = Get-SqlResult "select table_name from user_tables where table_name like 'OCC_STR_DATA%';"
 foreach ($table in $strTables) {
     if ($table.Trim()) {
-        Write-Host " - Generating SQL*Loader files for $table"
+        $cleanTableName = $table.Trim()
+        Write-Host " - Generating SQL*Loader files for $cleanTableName"
+        $columnQuery = "SELECT column_name || ';' || data_type FROM user_tab_columns WHERE table_name = '$cleanTableName' ORDER BY column_id"
+        $columnsAndTypes = Get-SqlResult $columnQuery
+        $columnListEntries = @()
+        foreach ($line in $columnsAndTypes) {
+            $parts = $line.Split(';', 2)
+            if ($parts.Count -eq 2) {
+                $columnName = $parts[0].Trim()
+                $dataType = $parts[1].Trim()
+                if ($dataType -eq "DATE") {
+                    $columnListEntries += "  `"$columnName`" DATE ""DD-MON-YY"""
+                }
+                else {
+                    $columnListEntries += "  `"$columnName`""
+                }
+            }
+        }
+        $columnList = "(" + ($columnListEntries -join ",`r`n") + "`r`n)"
+        $ldrFilePath = Join-Path $dirStr "$cleanTableName.ldr"
+        $ctlFilePath = Join-Path $dirStr "$cleanTableName.ctl"
         $ctlContent = @"
+OPTIONS (SKIP=0, ERRORS=-1, ROWS=1000, BINDSIZE=256000, READSIZE=256000)
 LOAD DATA
-INFILE *
-INTO TABLE $table
-FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
-(all columns need to be listed manually)
+INFILE '$ldrFilePath' "str '{EOL}'"
+APPEND
+CONTINUEIF NEXT(1:1) = '#'
+INTO TABLE "$cleanTableName"
+FIELDS TERMINATED BY '|' OPTIONALLY ENCLOSED BY '"'
+TRAILING NULLCOLS
+$columnList
 "@
-        Set-Content -Path (Join-Path $dirStr "$table.ctl") -Value $ctlContent
-        $csvScript = @"
-$sqlConnect
-set colsep ',' head off pagesize 0 feedback off trimspool on linesize 32767;
-spool "$(Join-Path $dirStr "$table.csv")"
-select * from $table;
+        Set-Content -Path $ctlFilePath -Value $ctlContent
+        $ldrScript = @"
+CONNECT $oracleUser/$oraclePass@$oracleDb
+set colsep '|' head off pagesize 0 feedback off trimspool on linesize 32767;
+spool "$ldrFilePath"
+select * from $cleanTableName;
 spool off;
 exit;
 "@
-        $csvScript | & $sqlplusPath -S /nolog | Out-Null
+        $ldrScript | & $sqlplusPath -S /nolog | Out-Null
     }
 }
 
